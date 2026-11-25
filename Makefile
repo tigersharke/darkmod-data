@@ -22,7 +22,7 @@ USE_LINUX=		xorglibs
 BUILD_DEPENDS=		${LOCALBASE}/bin/Xvfb:x11-servers/xlibre-vfb
 
 NO_ARCH=		yes
-NO_BUILD=		yes
+#NO_BUILD=		yes
 #NO_WRKSUBDIR=		yes			# binary extracts directly into WRKDIR
 
 DATADIR=		${PREFIX}/share/darkmod
@@ -30,6 +30,20 @@ INSTALL_DIR=		${WRKDIR}/darkmod-install
 
 post-extract:
 	${CHMOD} +x ${WRKDIR}/tdm_installer.linux64
+
+do-build:
+	Xvfb :99 -screen 0 1024x768x24 & echo $$! > ${WRKDIR}/.xvfb.pid
+	sleep 2
+	cd ${WRKDIR} && ${SETENV} DISPLAY=:99 HOME=${WRKDIR} \
+		./tdm_installer.linux64 --unattended & echo $$! > ${WRKDIR}/.installer.pid
+	@echo "===>  tdm_installer running (pid $$(cat ${WRKDIR}/.installer.pid))"
+	@while kill -0 $$(cat ${WRKDIR}/.installer.pid) 2>/dev/null; do \
+		printf '.'; \
+		sleep 2; \
+	done; \
+	echo; \
+	echo "===>  tdm_installer finished"
+	-kill `cat ${WRKDIR}/.xvfb.pid` 2>/dev/null || true
 
 do-install:
 	@if [ ! -f ${WRKDIR}/tdm_base01.pk4 ]; then \
